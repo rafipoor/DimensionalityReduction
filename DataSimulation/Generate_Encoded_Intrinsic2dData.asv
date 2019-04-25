@@ -1,0 +1,30 @@
+clear;
+nSubjects  = 30;
+nSamples   = 64;   % number of points
+nVoxels    = 343;  % dimension of emmbedding space
+dIntrinsic = 2;
+dIrrelevant= nVoxels - dIntrinsic; 
+SignalRho  = 0;
+NoiseStd   = eps; 
+ConfigurationName = 'Encoded2D';
+EncodingMat = randn(dIntrinsic,nVoxels);
+RunInfo     = sprintf('%s: nSamples=%d dIntrinsic=%d dData=%d noisestd=%1.2f',...
+    ConfigurationName,nSamples,dIntrinsic,nVoxels);
+FolderName = fullfile('..','Data',ConfigurationName);
+mkdir(FolderName);
+save(fullfile(FolderName,'SimulationOptions'));
+load('WhiteNoise.mat');
+
+for sID = 1:nSubjects
+    Mu             = zeros(dIntrinsic,1);
+    Signal         = mvnrnd(Mu,eye(dIntrinsic)+SignalRho*ones(dIntrinsic),nSamples);
+    EncodedSignal  = Signal* EncodingMat;
+    Noise          = NoiseStd * WhiteNoise(1:nSamples,1:nVoxels,sID);
+    TrueCovariance = cov(EncodedSignal);
+    Data           = EncodedSignal + Noise;
+    Data           = bsxfun(@minus,Data,mean(Data));%centering
+    nConditions    = nSamples;
+    fName          = fullfile(FolderName,sprintf('%03d',sID));
+    save(fName,'Data','Signal');
+end
+
